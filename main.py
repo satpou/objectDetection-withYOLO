@@ -1,6 +1,6 @@
 """
 Real-Time Object Detection with YOLO
-Author  : YourName
+Author  : Satpou
 Version : 1.0.0
 """
 
