@@ -54,8 +54,8 @@ Aplikasi **Real-Time Object Detection** menggunakan **Python**, **OpenCV**, dan 
 Clone repository terlebih dahulu.
 
 ```bash
-git clone https://github.com/satpou/yolo-object-detection.git
-cd yolo-object-detection
+git clone https://github.com/satpou/objectDetection-withYOLO
+cd objectDetection-withYOLO
 ```
 
 (Optional) Buat virtual environment.
