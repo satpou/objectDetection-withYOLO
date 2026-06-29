@@ -13,6 +13,9 @@ Aplikasi **Real-Time Object Detection** menggunakan **Python**, **OpenCV**, dan 
 - 📊 Menampilkan FPS secara real-time
 - 💾 Save hasil deteksi ke image atau video
 - 🖥️ Support Windows, macOS, dan Linux
+- ✌️ Hand gesture detection (MediaPipe)
+- 🔲 Blur effect saat peace gesture terdeteksi
+- 🎯 Real-time gesture recognition
 
 ---
 
@@ -21,6 +24,8 @@ Aplikasi **Real-Time Object Detection** menggunakan **Python**, **OpenCV**, dan 
 - Python 3.10+
 - OpenCV
 - Ultralytics YOLOv8
+- MediaPipe (Hand Landmarker)
+- OpenCV
 - NumPy
 - PyTorch
 
@@ -31,7 +36,8 @@ Aplikasi **Real-Time Object Detection** menggunakan **Python**, **OpenCV**, dan 
 ```text
 .
 ├── models/
-│   └── yolov8s.pt
+│   ├── yolov8s.pt
+│   └── hand_landmarker.task
 ├── assets/
 │   ├── images/
 │   └── videos/
@@ -82,7 +88,14 @@ Download model YOLOv8 dan simpan ke folder `models/`.
 
 ```
 models/
-└── yolov8s.pt
+├── yolov8s.pt
+└── hand_landmarker.task
+```
+
+Model YOLOv8 akan otomatis diunduh saat pertama kali dijalankan. Untuk `hand_landmarker.task`, download dari:
+
+```bash
+curl -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
 ```
 
 ---
@@ -100,6 +113,13 @@ Menyimpan hasil webcam.
 ```bash
 python main.py webcam --save
 ```
+
+#### ✌️ Gesture Control
+Fitur gesture detection aktif secara otomatis. Mode blur akan aktif saat:
+- **Peace gesture (✌️)** → Blur ON
+- **Open palm (✋)** → Blur OFF
+
+Status hand detection ditampilkan di overlay kiri bawah layar.
 
 ---
 
@@ -138,10 +158,29 @@ Beberapa konfigurasi dapat diubah langsung pada source code.
 | Parameter | Keterangan |
 |-----------|------------|
 | `MODEL_PATH` | Lokasi model YOLO |
-| `CONF_THRESH` | Minimum confidence |
-| `IOU_THRESH` | IoU threshold |
-| `IMG_SIZE` | Ukuran input image |
-| `SKIP_FRAMES` | Jumlah frame yang dilewati |
+| `HAND_MODEL` | Lokasi model hand landmarker |
+| `CONF_THRESH` | Minimum confidence YOLO |
+| `IOU_THRESH` | IoU threshold YOLO |
+| `IMG_SIZE` | Ukuran input image YOLO |
+| `SKIP_FRAMES` | Jumlah frame YOLO yang dilewati |
+| `FONT` | Font untuk overlay teks |
+
+---
+
+## 🖐️ Hand Gesture Setup
+
+Fitur gesture detection menggunakan **MediaPipe Hand Landmarker**. Model `hand_landmarker.task` perlu diunduh ke folder `models/`:
+
+```bash
+curl -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+```
+
+### Gesture yang didukung:
+
+| Gesture | Keterangan |
+|---------|------------|
+| **Peace (✌️)** | Jari telunjuk & tengah tegak, jari lain ditekuk → Blur ON |
+| **Open Palm (✋)** | Semua jari tegak → Blur OFF |
 
 ---
 

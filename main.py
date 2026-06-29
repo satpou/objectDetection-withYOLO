@@ -1,7 +1,7 @@
 """
 Real-Time Object Detection with YOLO
-Author  : Satpou
-Version : 1.0.0
+Author  : SatPou
+Version : 1.0.1
 """
 
 import cv2
@@ -13,12 +13,21 @@ from pathlib import Path
 from typing import Optional
 from ultralytics import YOLO
 
+try:
+    import mediapipe as mp
+    from mediapipe.tasks import python as mp_tasks
+    from mediapipe.tasks.python import vision as mp_vision
+    MEDIAPIPE_AVAILABLE = True
+except Exception:
+    MEDIAPIPE_AVAILABLE = False
+
 # ── Config ────────────────────────────────────
 MODEL_PATH  = "models/yolov8s.pt"
-CONF_THRESH = 0.25   # minimum confidence
+HAND_MODEL  = "models/hand_landmarker.task"
+CONF_THRESH = 0.25
 IOU_THRESH  = 0.45
 IMG_SIZE    = 640
-SKIP_FRAMES = 2      # inferensi setiap N frame
+SKIP_FRAMES = 2
 FONT        = cv2.FONT_HERSHEY_SIMPLEX
 
 PALETTE = [
@@ -30,13 +39,45 @@ PALETTE = [
     (204, 121, 167),
 ]
 
+HAND_CONNECTIONS = [
+    (0,1),(1,2),(2,3),(3,4),
+    (0,5),(5,6),(6,7),(7,8),
+    (0,9),(9,10),(10,11),(11,12),
+    (0,13),(13,14),(14,15),(15,16),
+    (0,17),(17,18),(18,19),(19,20),
+]
+
 
 def get_color(class_id: int) -> tuple:
     return PALETTE[class_id % len(PALETTE)]
 
 
+def finger_up(tip, pip, landmarks) -> bool:
+    return landmarks[tip].y < landmarks[pip].y
+
+
+def is_peace_gesture(lm) -> bool:
+    return (finger_up(8, 6, lm) and
+            finger_up(12, 10, lm) and
+            not finger_up(16, 14, lm) and
+            not finger_up(20, 18, lm))
+
+
+def is_open_palm(lm) -> bool:
+    return all(finger_up(t, t-2, lm) for t in [8, 12, 16, 20])
+
+
+def draw_hand_landmarks(frame, landmarks, w, h) -> None:
+    for i, lm in enumerate(landmarks):
+        cx, cy = int(lm.x * w), int(lm.y * h)
+        cv2.circle(frame, (cx, cy), 4, (0, 255, 0), -1)
+    for a, b in HAND_CONNECTIONS:
+        ax, ay = int(landmarks[a].x * w), int(landmarks[a].y * h)
+        bx, by = int(landmarks[b].x * w), int(landmarks[b].y * h)
+        cv2.line(frame, (ax, ay), (bx, by), (0, 255, 0), 2)
+
+
 def get_device() -> str:
-    # Pilih device terbaik: MPS (Mac) → CUDA (NVIDIA) → CPU
     try:
         import torch
         if torch.backends.mps.is_available():
@@ -51,17 +92,13 @@ def get_device() -> str:
 def draw_detection(frame, box, label: str, conf: float, color: tuple) -> None:
     x1, y1, x2, y2 = map(int, box)
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-
     text = f"{label}  {conf:.0%}"
     (tw, th), baseline = cv2.getTextSize(text, FONT, 0.55, 1)
     bg_y1 = max(y1 - th - baseline - 6, 0)
-    bg_y2 = max(y1, th + baseline + 6)
-    cv2.rectangle(frame, (x1, bg_y1), (x1 + tw + 8, bg_y2), color, cv2.FILLED)
-    cv2.putText(frame, text, (x1 + 4, bg_y2 - baseline - 2),
+    cv2.rectangle(frame, (x1, bg_y1), (x1 + tw + 8, y1), color, cv2.FILLED)
+    cv2.putText(frame, text, (x1 + 4, y1 - baseline - 2),
                 FONT, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
-
-    # confidence bar
-    bar_h  = 4
+    bar_h = 4
     bar_x2 = x1 + int((x2 - x1) * conf)
     cv2.rectangle(frame, (x1, y2 - bar_h), (x2, y2), (50, 50, 50), cv2.FILLED)
     cv2.rectangle(frame, (x1, y2 - bar_h), (bar_x2, y2), color, cv2.FILLED)
@@ -79,14 +116,9 @@ def draw_fps(frame, fps: float) -> None:
 
 def process_frame(model, frame, names: dict, device: str = "cpu") -> "tuple[np.ndarray, int]":
     results = model.predict(
-        source=frame,
-        conf=CONF_THRESH,
-        iou=IOU_THRESH,
-        imgsz=IMG_SIZE,
-        device=device,
-        verbose=False,
+        source=frame, conf=CONF_THRESH, iou=IOU_THRESH,
+        imgsz=IMG_SIZE, device=device, verbose=False,
     )[0]
-
     count = 0
     if results.boxes is not None:
         for box in results.boxes:
@@ -96,21 +128,17 @@ def process_frame(model, frame, names: dict, device: str = "cpu") -> "tuple[np.n
             color  = get_color(cls_id)
             draw_detection(frame, box.xyxy[0].tolist(), label, conf, color)
             count += 1
-
     return frame, count
 
 
 def resolve_output_path(output_arg: Optional[str], src_stem: str, suffix: str, fallback_dir: Path) -> Path:
     default_name = f"{src_stem}_detected{suffix}"
-
     if output_arg is None:
         return fallback_dir / default_name
-
     out = Path(output_arg)
     if out.is_dir() or out.suffix == "":
         out.mkdir(parents=True, exist_ok=True)
         return out / default_name
-
     out.parent.mkdir(parents=True, exist_ok=True)
     return out
 
@@ -124,7 +152,6 @@ def detect_webcam(
     output: Optional[str] = None,
     save: bool = False,
 ) -> None:
-    # Pilih backend kamera sesuai OS
     system = platform.system()
     if system == "Darwin":
         cap = cv2.VideoCapture(cam_index, cv2.CAP_AVFOUNDATION)
@@ -134,7 +161,7 @@ def detect_webcam(
         cap = cv2.VideoCapture(cam_index, cv2.CAP_V4L2)
 
     if not cap.isOpened():
-        cap = cv2.VideoCapture(cam_index)  # fallback
+        cap = cv2.VideoCapture(cam_index)
     if not cap.isOpened():
         raise RuntimeError(f"Kamera index {cam_index} tidak dapat dibuka.")
 
@@ -154,7 +181,7 @@ def detect_webcam(
     print(f"[INFO] Kamera       : {cam_index} ({actual_w}x{actual_h})")
     print(f"[INFO] OS           : {platform.system()} {platform.machine()}")
 
-    writer   = None
+    writer = None
     out_path = None
     if output is not None or save:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -168,18 +195,36 @@ def detect_webcam(
     print(f"[INFO] Device       : {device.upper()}")
     print("[INFO] Tekan Q untuk keluar")
 
+    # ── Init MediaPipe HandLandmarker (Tasks API) ──
+    landmarker = None
+    if MEDIAPIPE_AVAILABLE and Path(HAND_MODEL).exists():
+        base_options = mp_tasks.BaseOptions(model_asset_path=HAND_MODEL)
+        options = mp_vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=1,
+            min_hand_detection_confidence=0.5,
+            min_hand_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+        )
+        landmarker = mp_vision.HandLandmarker.create_from_options(options)
+        print("[INFO] Gesture      : peace = blur ON, open palm = blur OFF")
+    else:
+        print("[WARN] MediaPipe / hand_landmarker.task tidak ditemukan, gesture OFF")
+
     names        = model.names
     frame_times  = []
     total_frames = 0
     total_objs   = 0
     last_frame   = None
+    blur_active  = False
+    no_hand_frames = 0
+    no_frame_without_hand = 0
 
     while True:
         t_start = time.perf_counter()
 
         ret, frame = cap.read()
         if not ret:
-            print("[WARN] Frame tidak terbaca, mencoba lagi...")
             for _ in range(5):
                 ret, frame = cap.read()
                 if ret:
@@ -188,13 +233,54 @@ def detect_webcam(
                 print("[ERROR] Kamera berhenti mengirim frame.")
                 break
 
-        # Frame skipping — hemat komputasi
+        frame = cv2.flip(frame, 1)
+
+        # ─── 1. Gesture detection (frame BERSIH, sebelum YOLO) ───
+        hand_detected = False
+        gesture_text  = ""
+        if landmarker is not None:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+            result = landmarker.detect(mp_image)
+            if result.hand_landmarks:
+                hand_detected = True
+                no_hand_frames = 0
+                lm_list = result.hand_landmarks[0]
+                draw_hand_landmarks(frame, lm_list, actual_w, actual_h)
+                if is_peace_gesture(lm_list):
+                    blur_active = True
+                    no_frame_without_hand = 0
+                    gesture_text = "PEACE"
+                elif is_open_palm(lm_list):
+                    blur_active = False
+                    gesture_text = "OPEN PALM"
+                else:
+                    blur_active = False
+                    gesture_text = "HAND"
+            else:
+                no_frame_without_hand += 1
+                no_hand_frames += 1
+                if no_frame_without_hand > 3 or no_hand_frames > 5:
+                    blur_active = False
+                gesture_text = "NO HAND"
+
+        dbg = f"Hand: {'YES' if hand_detected else 'NO'} | {gesture_text}" if landmarker else "MediaPipe: OFF"
+        cv2.putText(frame, dbg, (10, actual_h - 20), FONT, 0.55, (0, 255, 0), 1, cv2.LINE_AA)
+
+        # ─── 2. YOLO detection ───
         if total_frames % SKIP_FRAMES == 0:
             frame, count = process_frame(model, frame, names, device)
-            last_frame   = frame.copy()
+            last_frame = frame.copy()
         else:
-            frame = last_frame if last_frame is not None else frame
+            if last_frame is not None:
+                frame = cv2.resize(last_frame, (actual_w, actual_h))
             count = 0
+
+        # ─── 3. Blur effect ───
+        if blur_active:
+            frame = cv2.GaussianBlur(frame, (61, 61), 0)
+            cv2.putText(frame, "BLUR ON", (10, 40),
+                        FONT, 1.0, (0, 255, 255), 2, cv2.LINE_AA)
 
         elapsed = time.perf_counter() - t_start
         frame_times.append(elapsed)
@@ -217,6 +303,8 @@ def detect_webcam(
             break
 
     cap.release()
+    if landmarker is not None:
+        landmarker.close()
     if writer is not None:
         writer.release()
         print(f"\n[INFO] Video disimpan ke: {out_path}")
@@ -244,14 +332,16 @@ def detect_video(model, video_path: str, output: Optional[str] = None) -> None:
     print(f"[INFO] Video  : {src.name} ({total} frame)")
     print(f"[INFO] Output : {out_path}")
 
+    device = get_device()
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        frame, _  = process_frame(model, frame, names)
-        elapsed   = time.perf_counter() - t_start
-        fps_live  = (frame_n + 1) / max(elapsed, 1e-6)
+        frame, _ = process_frame(model, frame, names, device=device)
+        elapsed  = time.perf_counter() - t_start
+        fps_live = (frame_n + 1) / max(elapsed, 1e-6)
         draw_fps(frame, fps_live)
 
         writer.write(frame)
@@ -279,8 +369,9 @@ def detect_image(model, image_path: str, output: Optional[str] = None) -> None:
         raise ValueError(f"Tidak dapat membaca gambar: {image_path}")
 
     names        = model.names
+    device       = get_device()
     t0           = time.perf_counter()
-    frame, count = process_frame(model, frame, names)
+    frame, count = process_frame(model, frame, names, device=device)
     elapsed_ms   = (time.perf_counter() - t0) * 1000
 
     draw_fps(frame, 1000 / max(elapsed_ms, 1e-3))

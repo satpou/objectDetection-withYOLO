@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+output/
+models/yolov8s.pt
+models/hand_landmarker.task
