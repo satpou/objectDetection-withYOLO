@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">🎯 Real-Time Detection System</span>
+            <span class="badge bg-success" id="status-badge">Ready</span>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Live Camera Feed</h5>
+                    </div>
+                    <div class="card-body p-0 video-container">
+                        <img id="video-stream" src="{{ url_for('video_feed') }}" alt="Video Stream" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">Detection Mode</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary mode-btn active" data-mode="both">
+                                <i class="bi bi-stars"></i> Both (YOLO + Gesture)
+                            </button>
+                            <button class="btn btn-outline-success mode-btn" data-mode="yolo">
+                                <i class="bi bi-box"></i> YOLO Only
+                            </button>
+                            <button class="btn btn-outline-warning mode-btn" data-mode="hand">
+                                <i class="bi bi-hand-index"></i> Hand Gesture Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">System Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Current Mode:</td>
+                                <td><span id="current-mode" class="badge bg-primary">Both</span></td>
+                            </tr>
+                            <tr>
+                                <td>YOLO Model:</td>
+                                <td><span id="model-status" class="badge bg-secondary">Loading...</span></td>
+                            </tr>
+                            <tr>
+                                <td>MediaPipe:</td>
+                                <td><span id="mediapipe-status" class="badge bg-secondary">Loading...</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">Instructions</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="small mb-0">
+                            <li><strong>YOLO:</strong> Detects objects in real-time</li>
+                            <li><strong>Peace (✌️):</strong> Activates blur effect</li>
+                            <li><strong>Open Palm (✋):</strong> Deactivates blur</li>
+                            <li><strong>Both:</strong> Combines both features</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-4 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Real-Time Detection System v1.1.0 | Powered by YOLOv8 & MediaPipe</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
