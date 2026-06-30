@@ -1,12 +1,18 @@
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request, jsonify, send_file
 import cv2
 import numpy as np
 import time
+import os
+import uuid
 from pathlib import Path
 from ultralytics import YOLO
 from utils import draw_detection, draw_fps, draw_hand_landmarks, get_color, get_device
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
+
+UPLOAD_FOLDER = Path("static/uploads")
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 HAND_MODEL = "models/hand_landmarker.task"
 MODEL_PATH = "models/yolov8s.pt"
@@ -185,6 +191,116 @@ def get_status():
         'model_loaded': model is not None,
         'landmarker_loaded': landmarker is not None
     })
+
+@app.route('/upload/image', methods=['POST'])
+def upload_image():
+    init_model()
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Empty filename'}), 400
+    
+    # Read and process image
+    img_bytes = file.read()
+    nparr = np.frombuffer(img_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img is None:
+        return jsonify({'status': 'error', 'message': 'Invalid image'}), 400
+    
+    # YOLO detection
+    results = model.predict(source=img, conf=CONF_THRESH, iou=IOU_THRESH, imgsz=IMG_SIZE, device=device, verbose=False)[0]
+    count = 0
+    if results.boxes is not None:
+        for box in results.boxes:
+            cls_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            label = model.names.get(cls_id, str(cls_id))
+            color = get_color(cls_id)
+            draw_detection(img, box.xyxy[0].tolist(), label, conf, color)
+            count += 1
+    
+    # Save result
+    filename = f"{uuid.uuid4().hex}_result.jpg"
+    filepath = UPLOAD_FOLDER / filename
+    cv2.imwrite(str(filepath), img)
+    
+    return jsonify({
+        'status': 'success',
+        'count': count,
+        'filename': filename,
+        'message': f'Detected {count} objects'
+    })
+
+@app.route('/upload/video', methods=['POST'])
+def upload_video():
+    init_model()
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Empty filename'}), 400
+    
+    # Save uploaded video
+    input_filename = f"{uuid.uuid4().hex}_input.mp4"
+    input_path = UPLOAD_FOLDER / input_filename
+    file.save(str(input_path))
+    
+    # Process video
+    cap = cv2.VideoCapture(str(input_path))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    output_filename = f"{uuid.uuid4().hex}_result.mp4"
+    output_path = UPLOAD_FOLDER / output_filename
+    writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+    
+    frame_count = 0
+    total_objs = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        results = model.predict(source=frame, conf=CONF_THRESH, iou=IOU_THRESH, imgsz=IMG_SIZE, device=device, verbose=False)[0]
+        count = 0
+        if results.boxes is not None:
+            for box in results.boxes:
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+                label = model.names.get(cls_id, str(cls_id))
+                color = get_color(cls_id)
+                draw_detection(frame, box.xyxy[0].tolist(), label, conf, color)
+                count += 1
+        total_objs += count
+        frame_count += 1
+        
+        avg_conf = total_objs / max(frame_count, 1)
+        text = f"Frame: {frame_count} | Objects: {total_objs} | Avg: {avg_conf:.1f}"
+        cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        writer.write(frame)
+    
+    cap.release()
+    writer.release()
+    
+    # Cleanup input
+    os.remove(input_path)
+    
+    return jsonify({
+        'status': 'success',
+        'frame_count': frame_count,
+        'total_objects': total_objs,
+        'filename': output_filename,
+        'message': f'Processed {frame_count} frames, {total_objs} total objects detected'
+    })
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_file(UPLOAD_FOLDER / filename)
 
 if __name__ == '__main__':
     init_model()
