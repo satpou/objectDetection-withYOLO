@@ -189,5 +189,5 @@ def get_status():
 if __name__ == '__main__':
     init_model()
     init_landmarker()
-    print("[INFO] Starting web server at http://localhost:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    print("[INFO] Starting web server at http://localhost:5001")
+    app.run(host='0.0.0.0', port=5001, debug=False, threaded=True)

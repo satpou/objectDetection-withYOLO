@@ -3,83 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Detection System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Real-Time Detection System | SatPou</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">🎯 Real-Time Detection System</span>
-            <span class="badge bg-success" id="status-badge">Ready</span>
+    <nav class="navbar">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <span class="navbar-brand mb-0 h4 d-flex align-items-center">
+                <i class="bi bi-camera-video me-2"></i>
+                Real-Time Detection System
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-light small d-none d-md-inline">v1.1.0</span>
+                <span class="badge bg-success" id="status-badge">
+                    <i class="bi bi-wifi me-1"></i>Ready
+                </span>
+            </div>
         </div>
     </nav>
 
     <div class="container-fluid mt-4">
-        <div class="row">
-            <div class="col-md-9">
-                <div class="card">
-                    <div class="card-header bg-dark text-white">
-                        <h5 class="mb-0">Live Camera Feed</h5>
+        <div class="row g-4">
+            <!-- Video Stream -->
+            <div class="col-xl-9">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-broadcast"></i> Live Camera Feed
                     </div>
-                    <div class="card-body p-0 video-container">
-                        <img id="video-stream" src="{{ url_for('video_feed') }}" alt="Video Stream" class="img-fluid">
+                    <div class="card-body p-0 video-container" id="videoContainer">
+                        <img id="video-stream" 
+                             src="{{ url_for('video_feed') }}" 
+                             alt="Video Stream" 
+                             onload="document.getElementById('videoContainer').classList.add('loaded')">
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-3">
+            <!-- Controls Panel -->
+            <div class="col-xl-3">
+                <!-- Mode Selection -->
                 <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">Detection Mode</h6>
+                    <div class="card-header">
+                        <i class="bi bi-sliders"></i> Detection Mode
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary mode-btn active" data-mode="both">
-                                <i class="bi bi-stars"></i> Both (YOLO + Gesture)
+                            <button class="btn mode-btn active" data-mode="both">
+                                <i class="bi bi-stars"></i> <span>Both (YOLO + Gesture)</span>
                             </button>
-                            <button class="btn btn-outline-success mode-btn" data-mode="yolo">
-                                <i class="bi bi-box"></i> YOLO Only
+                            <button class="btn mode-btn" data-mode="yolo">
+                                <i class="bi bi-box-seam"></i> <span>YOLO Detection</span>
                             </button>
-                            <button class="btn btn-outline-warning mode-btn" data-mode="hand">
-                                <i class="bi bi-hand-index"></i> Hand Gesture Only
+                            <button class="btn mode-btn" data-mode="hand">
+                                <i class="bi bi-hand-index-thumb"></i> <span>Hand Gesture Blur</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
+                <!-- System Status -->
                 <div class="card mb-3">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">System Status</h6>
+                    <div class="card-header">
+                        <i class="bi bi-activity"></i> System Status
                     </div>
                     <div class="card-body">
-                        <table class="table table-sm">
-                            <tr>
-                                <td>Current Mode:</td>
-                                <td><span id="current-mode" class="badge bg-primary">Both</span></td>
-                            </tr>
-                            <tr>
-                                <td>YOLO Model:</td>
-                                <td><span id="model-status" class="badge bg-secondary">Loading...</span></td>
-                            </tr>
-                            <tr>
-                                <td>MediaPipe:</td>
-                                <td><span id="mediapipe-status" class="badge bg-secondary">Loading...</span></td>
-                            </tr>
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <td>Current Mode:</td>
+                                    <td>
+                                        <span id="current-mode" class="badge bg-primary">Both</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>YOLO Model:</td>
+                                    <td>
+                                        <span id="model-status" class="badge bg-secondary">
+                                            <span class="spinner-border spinner-border-sm me-1"></span>Loading...
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>MediaPipe:</td>
+                                    <td>
+                                        <span id="mediapipe-status" class="badge bg-secondary">
+                                            <span class="spinner-border spinner-border-sm me-1"></span>Loading...
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
 
+                <!-- Instructions -->
                 <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0">Instructions</h6>
+                    <div class="card-header">
+                        <i class="bi bi-info-circle"></i> Instructions
                     </div>
                     <div class="card-body">
-                        <ul class="small mb-0">
-                            <li><strong>YOLO:</strong> Detects objects in real-time</li>
-                            <li><strong>Peace (✌️):</strong> Activates blur effect</li>
-                            <li><strong>Open Palm (✋):</strong> Deactivates blur</li>
-                            <li><strong>Both:</strong> Combines both features</li>
+                        <ul class="mb-0">
+                            <li><strong>YOLO:</strong> Real-time object detection with confidence scores</li>
+                            <li class="mt-2"><strong>Peace (✌️):</strong> Activates Gaussian blur on frame</li>
+                            <li class="mt-2"><strong>Open Palm (✋):</strong> Deactivates blur instantly</li>
+                            <li class="mt-2"><strong>Both:</strong> Combined detection + gesture control</li>
                         </ul>
                     </div>
                 </div>
@@ -87,13 +116,15 @@
         </div>
     </div>
 
-    <footer class="footer mt-4 py-3 bg-light">
+    <footer class="footer py-3 bg-dark text-star">
         <div class="container text-center">
-            <span class="text-muted">Real-Time Detection System v1.1.0 | Powered by YOLOv8 & MediaPipe</span>
+            <span>Real-Time Detection System v1.1.0</span> | 
+            <span>Powered by YOLOv8 & MediaPipe</span> | 
+            <span style="font-weight: 600;">Developed by SatPou</span>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
