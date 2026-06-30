@@ -8,7 +8,6 @@ const processImageBtn = document.getElementById('processImageBtn');
 
 let selectedImageFile = null;
 
-// Dropzone drag events
 ['dragenter', 'dragover'].forEach(evt => {
     imageDropzone.addEventListener(evt, e => {
         e.preventDefault();
@@ -29,6 +28,8 @@ imageDropzone.addEventListener('drop', e => {
         handleImageSelect(files[0]);
     }
 });
+
+imageDropzone.addEventListener('click', () => imageInput.click());
 
 imageInput.addEventListener('change', e => {
     if (e.target.files.length > 0) {
@@ -70,6 +71,7 @@ processImageBtn.addEventListener('click', async () => {
             document.getElementById('imageResultText').textContent = data.message;
             document.getElementById('imageResultPlaceholder').classList.add('d-none');
             document.getElementById('imageResult').classList.remove('d-none');
+            document.getElementById('downloadImageLink').classList.remove('d-none');
             document.getElementById('downloadImageLink').href = `/uploads/${data.filename}`;
             document.getElementById('downloadImageLink').download = data.filename;
             showNotification(`Success! ${data.message}`, 'success');
@@ -93,7 +95,6 @@ const processVideoBtn = document.getElementById('processVideoBtn');
 
 let selectedVideoFile = null;
 
-// Dropzone drag events
 ['dragenter', 'dragover'].forEach(evt => {
     videoDropzone.addEventListener(evt, e => {
         e.preventDefault();
@@ -114,6 +115,8 @@ videoDropzone.addEventListener('drop', e => {
         handleVideoSelect(files[0]);
     }
 });
+
+videoDropzone.addEventListener('click', () => videoInput.click());
 
 videoInput.addEventListener('change', e => {
     if (e.target.files.length > 0) {
@@ -151,10 +154,13 @@ processVideoBtn.addEventListener('click', async () => {
         document.getElementById('videoProcessing').classList.add('d-none');
         
         if (data.status === 'success') {
-            document.getElementById('videoSource').src = `/uploads/${data.filename}`;
-            document.getElementById('resultVideo').load();
+            const videoEl = document.getElementById('resultVideo');
+            videoEl.src = `/uploads/${data.filename}`;
+            videoEl.load();
+            videoEl.play().catch(() => {});
             document.getElementById('videoResultText').textContent = data.message;
             document.getElementById('videoResult').classList.remove('d-none');
+            document.getElementById('downloadVideoLink').classList.remove('d-none');
             document.getElementById('downloadVideoLink').href = `/uploads/${data.filename}`;
             document.getElementById('downloadVideoLink').download = data.filename;
             showNotification(`Success! ${data.message}`, 'success');
@@ -172,14 +178,12 @@ processVideoBtn.addEventListener('click', async () => {
     processVideoBtn.innerHTML = '<i class="bi bi-play-circle me-2"></i>Process Video';
 });
 
-// ── Show/Hide tabs on page load ──
+// ── Video stream loaded ──
 document.addEventListener('DOMContentLoaded', () => {
-    // Make sure webcam video container gets 'loaded' class when video loads
     const videoStream = document.getElementById('video-stream');
     if (videoStream) {
         videoStream.addEventListener('load', () => {
-            const container = document.getElementById('videoContainer');
-            if (container) container.classList.add('loaded');
+            document.getElementById('videoContainer').classList.add('loaded');
         });
     }
 });

@@ -76,25 +76,21 @@ function updateStatus() {
 }
 
 function showNotification(message, type) {
-    const existing = document.querySelectorAll('.alert');
+    const existing = document.querySelectorAll('.toast-notif');
     existing.forEach(el => el.remove());
     
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.role = 'alert';
-    alertDiv.innerHTML = `
+    const toast = document.createElement('div');
+    toast.className = 'toast-notif';
+    toast.innerHTML = `
         <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
+    document.body.appendChild(toast);
     
-    const container = document.querySelector('.container-fluid');
-    container.insertBefore(alertDiv, container.firstChild);
+    requestAnimationFrame(() => toast.classList.add('show'));
     
     setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.classList.remove('show');
-            setTimeout(() => alertDiv.remove(), 150);
-        }
-    }, 3000);
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 2000);
 }

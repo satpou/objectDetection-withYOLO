@@ -1,98 +1,96 @@
 # 🎯 Real-Time Object Detection with YOLOv8
 
-Aplikasi **Real-Time Object Detection** menggunakan **Python**, **OpenCV**, dan **Ultralytics YOLOv8**. Project ini dapat melakukan deteksi objek melalui **webcam**, **gambar**, maupun **video** dengan performa yang ringan dan mudah digunakan.
+Aplikasi **Real-Time Object Detection** menggunakan Python, Flask, OpenCV, YOLOv8, dan MediaPipe. Deteksi objek real-time dari webcam, gambar, dan video, plus gesture hand blur.
+
+**Deploy**: Railway.app | **UI**: Web (Flask + Bootstrap 5)
 
 ---
 
 ## ✨ Features
 
-- 📷 Real-time object detection dari webcam
-- 🖼️ Deteksi objek pada gambar
-- 🎥 Deteksi objek pada video
-- ⚡ Frame skipping untuk meningkatkan performa
-- 📊 Menampilkan FPS secara real-time
-- 💾 Save hasil deteksi ke image atau video
-- 🖥️ Support Windows, macOS, dan Linux
-- ✌️ Hand gesture detection (MediaPipe)
-- 🔲 Blur effect saat peace gesture terdeteksi
-- 🎯 Real-time gesture recognition
+- 📷 Webcam real-time detection + hand gesture blur
+- 🖼️ Upload image → YOLO detection
+- 🎥 Upload video → frame-by-frame YOLO detection
+- ✌️ **Peace gesture** → Gaussian blur ON
+- ✋ **Open palm** → Gaussian blur OFF
+- 📊 FPS counter, hand landmark overlay
+- ⚡ Frame skipping untuk performa
+- 🖥️ Responsive dark-theme UI (desktop + mobile)
 
 ---
 
 ## 🛠️ Tech Stack
 
-- Python 3.10+
+- Python 3.9+
+- Flask + Gunicorn
 - OpenCV
 - Ultralytics YOLOv8
-- MediaPipe (Hand Landmarker)
-- OpenCV
-- NumPy
+- MediaPipe Hand Landmarker
 - PyTorch
+- Bootstrap 5
+- Railway.app
 
 ---
 
 ## 📁 Project Structure
 
-```text
+```
 .
+├── app/                     # Aplikasi package
+│   ├── __init__.py          # Flask app factory
+│   ├── routes/
+│   │   ├── webcam.py        # Video feed (MJPEG)
+│   │   ├── upload.py        # Image/video upload API
+│   │   └── status.py        # Mode & status API
+│   ├── services/
+│   │   ├── camera.py        # Camera init & read
+│   │   ├── detector.py      # YOLO detection
+│   │   ├── gesture.py       # MediaPipe hand detection
+│   │   └── stream.py        # MJPEG streaming generator
+│   └── utils/
+│       └── drawing.py       # OpenCV drawing helpers
 ├── models/
-│   ├── yolov8s.pt
-│   └── hand_landmarker.task
-├── assets/
-│   ├── images/
-│   └── videos/
-├── output/
-├── main.py
+│   ├── yolov8s.pt           # YOLO weights
+│   └── hand_landmarker.task # MediaPipe model
+├── static/
+│   ├── style.css
+│   ├── script.js
+│   └── upload.js
+├── templates/
+│   └── index.html
+├── main.py                  # Entry point
+├── Procfile                 # Railway process
+├── railway.json             # Railway config
 ├── requirements.txt
-└── README.md
+└── readme.md
 ```
 
 ---
 
 ## 🚀 Installation
 
-Clone repository terlebih dahulu.
+Clone:
 
 ```bash
-git clone https://github.com/satpou/objectDetection-withYOLO
-cd objectDetection-withYOLO
+git clone https://github.com/satpou/realTime-detectionSystem
+cd realTime-detectionSystem
 ```
 
-(Optional) Buat virtual environment.
+Virtual environment:
 
 ```bash
 python -m venv .venv
+source .venv/bin/activate  # macOS/Linux
+# .venv\Scripts\activate   # Windows
 ```
 
-Aktifkan virtual environment.
-
-**Windows**
-
-```bash
-.venv\Scripts\activate
-```
-
-**macOS / Linux**
-
-```bash
-source .venv/bin/activate
-```
-
-Install seluruh dependency.
+Dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Download model YOLOv8 dan simpan ke folder `models/`.
-
-```
-models/
-├── yolov8s.pt
-└── hand_landmarker.task
-```
-
-Model YOLOv8 akan otomatis diunduh saat pertama kali dijalankan. Untuk `hand_landmarker.task`, download dari:
+Download model:
 
 ```bash
 curl -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
@@ -100,111 +98,49 @@ curl -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-mod
 
 ---
 
-## 🚀 Cara Menjalankan
-
-### Webcam Detection
+## 🚀 Run
 
 ```bash
-python main.py webcam
+python main.py
 ```
 
-Menyimpan hasil webcam.
-
-```bash
-python main.py webcam --save
-```
-
-#### ✌️ Gesture Control
-Fitur gesture detection aktif secara otomatis. Mode blur akan aktif saat:
-- **Peace gesture (✌️)** → Blur ON
-- **Open palm (✋)** → Blur OFF
-
-Status hand detection ditampilkan di overlay kiri bawah layar.
-
----
-
-### Image Detection
-
-```bash
-python main.py image assets/images/sample.jpg
-```
-
-Menentukan lokasi output.
-
-```bash
-python main.py image assets/images/sample.jpg --output output/result.jpg
-```
-
----
-
-### Video Detection
-
-```bash
-python main.py video assets/videos/sample.mp4
-```
-
-Menyimpan hasil ke lokasi tertentu.
-
-```bash
-python main.py video assets/videos/sample.mp4 --output output/result.mp4
-```
+Buka: `http://localhost:5001`
 
 ---
 
 ## ⚙️ Konfigurasi
 
-Beberapa konfigurasi dapat diubah langsung pada source code.
-
-| Parameter | Keterangan |
-|-----------|------------|
-| `MODEL_PATH` | Lokasi model YOLO |
-| `HAND_MODEL` | Lokasi model hand landmarker |
-| `CONF_THRESH` | Minimum confidence YOLO |
-| `IOU_THRESH` | IoU threshold YOLO |
-| `IMG_SIZE` | Ukuran input image YOLO |
-| `SKIP_FRAMES` | Jumlah frame YOLO yang dilewati |
-| `FONT` | Font untuk overlay teks |
+| Parameter | File | Keterangan |
+|-----------|------|------------|
+| `MODEL_PATH` | `app/services/detector.py` | Lokasi model YOLO |
+| `CONF_THRESH` | `app/services/detector.py` | Minimum confidence (0.25) |
+| `IOU_THRESH` | `app/services/detector.py` | IoU threshold (0.45) |
+| `IMG_SIZE` | `app/services/detector.py` | Ukuran input YOLO (640) |
+| `SKIP_FRAMES` | `app/services/stream.py` | Frame skip untuk YOLO (2) |
 
 ---
 
-## 🖐️ Hand Gesture Setup
+## 🖐️ Gesture
 
-Fitur gesture detection menggunakan **MediaPipe Hand Landmarker**. Model `hand_landmarker.task` perlu diunduh ke folder `models/`:
-
-```bash
-curl -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
-```
-
-### Gesture yang didukung:
-
-| Gesture | Keterangan |
-|---------|------------|
-| **Peace (✌️)** | Jari telunjuk & tengah tegak, jari lain ditekuk → Blur ON |
-| **Open Palm (✋)** | Semua jari tegak → Blur OFF |
+| Gesture | Action |
+|---------|--------|
+| **Peace (✌️)** | Blur ON |
+| **Open Palm (✋)** | Blur OFF |
 
 ---
 
-## 📌 Roadmap
+## 🚢 Deploy (Railway)
 
-- [ ] Object Counting
-- [ ] Object Tracking (ByteTrack)
-- [ ] Custom YOLO Model
-- [ ] GUI Desktop
-- [ ] Benchmark FPS
-- [ ] Export Detection Log
-- [ ] Docker Support
-
----
-
-## 🤝 Contributing
-
-Pull Request maupun Issue sangat terbuka apabila ingin memberikan saran atau pengembangan project ini.
+1. Push ke GitHub
+2. Buka [railway.app](https://railway.app) → New Project → Deploy from GitHub
+3. Set `PORT=5001` di Environment Variables
+4. Done.
 
 ---
 
 ## 📄 License
 
-Project ini menggunakan **MIT License**.
+MIT License
 
 ---
 

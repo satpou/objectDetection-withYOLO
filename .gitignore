@@ -3,5 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 output/
+static/uploads/*
+!.gitkeep
 models/yolov8s.pt
 models/hand_landmarker.task
