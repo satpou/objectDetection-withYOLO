@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from ultralytics import YOLO
-from utils import get_color, draw_detection
+from app.utils import get_color, draw_detection
 
 MODEL_PATH = "models/yolov8s.pt"
 CONF_THRESH = 0.25
@@ -15,7 +15,7 @@ device = None
 def init_model():
     global model, device
     if model is None:
-        from utils import get_device
+        from app.utils import get_device
         model = YOLO(MODEL_PATH)
         device = get_device()
         print(f"[INFO] YOLO loaded: {device.upper()}")

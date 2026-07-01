@@ -1,4 +1,5 @@
 import time
+import cv2
 from flask import Response
 from app.services.camera import camera, read_frame
 from app.services.detector import process_frame
@@ -50,7 +51,6 @@ def generate_frames():
 
         # Blur
         if blur_active:
-            import cv2
             frame = cv2.GaussianBlur(frame, (61, 61), 0)
 
         # Overlay

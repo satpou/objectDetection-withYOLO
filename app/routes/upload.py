@@ -1,9 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 import uuid
 from pathlib import Path
 from app.services.detector import process_image, process_video
 
-UPLOAD_FOLDER = Path("static/uploads")
+UPLOAD_FOLDER = Path(__file__).parent.parent.parent / "static/uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 upload_bp = Blueprint('upload', __name__)

@@ -1,5 +1,5 @@
 from pathlib import Path
-from utils import draw_hand_landmarks
+from app.utils import draw_hand_landmarks
 
 HAND_MODEL = "models/hand_landmarker.task"
 

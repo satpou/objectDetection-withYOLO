@@ -1,11 +1,14 @@
 from flask import Flask, render_template, send_from_directory
 from pathlib import Path
 
-UPLOAD_FOLDER = Path("static/uploads")
+ROOT = Path(__file__).parent.parent
+UPLOAD_FOLDER = ROOT / "static/uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__,
+                template_folder=ROOT / "templates",
+                static_folder=ROOT / "static")
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
     # Register blueprints
@@ -22,6 +25,6 @@ def create_app():
 
     @app.route('/uploads/<filename>')
     def uploaded_file(filename):
-        return send_from_directory('static/uploads', filename)
+        return send_from_directory(UPLOAD_FOLDER.parent, f"uploads/{filename}")
 
     return app
