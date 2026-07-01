@@ -1,11 +1,6 @@
-web:
-  build:
-    command: pip install -r requirements.txt
-  run:
-    command: python main.py
-  port: 5001
-  healthcheck:
-    path: /
-    interval: 30s
-    timeout: 10s
-    retries: 3
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "gunicorn main:app -b 0.0.0.0:${PORT:-5001} --timeout 120 --workers 1"
+  }
+}
